@@ -1,0 +1,388 @@
+<html lang="en">
+<head>
+    <link rel="shortcut icon" href="/static/images/logo.ico" type="image/x-icon">
+    <meta charset="UTF-8">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6" crossorigin="anonymous">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <!-- Alertify -->
+    <script src="//cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/alertify.min.js"></script>
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/alertify.min.css"/>
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/themes/default.min.css"/>
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/themes/semantic.min.css"/>
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/themes/bootstrap.min.css"/>
+    <!--  -->
+    <link rel="stylesheet" href="/static/styles/index.css">
+    <title>Whatsapp Clone - Home</title>
+</head>
+<body>
+    {% with messages = get_flashed_messages(with_categories=true) %} 
+    {% if messages %} 
+        {% for category, message in messages %} 
+            {% if category == 'error' %}
+                <script>alertify.error('{{message}}');</script>
+            {% else %}
+                <script>alertify.success('{{message}}');</script>
+    {%endif%}{%endfor%}{%endif%}{%endwith%}
+    <div id="big-pannel" style="display:none;">
+        <p style="font-size: 20px;text-align: left;position: absolute;top: 0px;">Loged As {{name}}</p>
+        <p style="font-size: 20px;text-align: right;color:white;position: absolute;right: 0px;"><a style="color: white;" href="/logout">Logout ?</a></p>
+        <div id="chat-container"></div>
+        <div id="contents" >
+            <br><br><br>
+            <form action="javascript:searcher()">
+                <a href="/create-group" style="font-size:25px;" class="btn btn-primary">+</a><br><br>
+                <input id="search-input" autocomplete="off" required class="form-control" list="all-users" type="text" name="qwery-whatsapp-clone" value="{{search}}" placeholder="Search...">
+        <br><br><div style="align-items:center;justify-content: center;text-align:center;"><button type="submit" class="btn btn-primary">Search</button><br><br>                                          </div>
+                <datalist id='all-users'>
+                    {%for i in all_users%}
+                        <option value="{{i}}">
+                    {%endfor%}
+                    <option value="──────────" disabled></option>
+                    {%for j in all_groups%}
+                        <option value="{{j}}">
+                    {%endfor%}
+                </datalist>
+            </form>
+                <br><br>
+            <br><hr><br>
+            <h4 style="text-align: center;color:red;">{{not_found}}</h4>
+
+            <div id="search-res-div"></div>
+        </div>
+        <br><br><br><br><br><br>
+    </div>
+    <div id="loading-div"></div>
+</body>
+</html>
+<script>
+    window.addEventListener("load", () => {
+        document.getElementById("big-pannel").style.display = "block" // Remove this to add loading.
+        document.getElementById("loading-div").style.display = "none" // Remove this to add loading.
+        //setTimeout(() => {
+        //    document.getElementById("loading-div").style.display = "none"
+        //    document.getElementById("big-pannel").style.display = "block"
+        //    document.body.backgroundColor  = "red";
+        //} ,Math.floor(Math.random() * (4000 - 2000 + 1)) + 2000)
+    })
+var socketio = io()
+    window.onload = () => {
+        if(window.location.href.includes(".loca.lt")){
+		    if(window.location.href.startsWith("http://")){
+			    let old = window.location.href
+			    window.location.href = old.replace("http://", "https://")
+		    }
+        }
+
+        Notification.requestPermission().then(function(result) {
+        console.log(result);
+    });
+
+
+    }
+
+    
+    function notifier(text){
+            var audio = new Audio("/static/send.mp3");
+            audio.play();
+            // var notification = new Notification('', { body: text});
+            var n = new Notification('', {body: text, silent: true});
+            document.addEventListener('visibilitychange', function() {
+                if (document.visibilityState === 'visible') {
+                    n.close();
+                }
+        }
+		);
+    }
+
+    socketio.on("{{name}}-new-message", (data) => { // name is ME
+        console.log(data[1])
+        notifier(data[1])
+        if(data[0] == document.getElementById('target-h3').innerText){
+            var newMsg = document.createElement("h3")
+            console.log(data[1])
+            newMsg.innerText = data[1]
+            newMsg.id = `userMsg`
+            document.getElementById("msg-container").appendChild(newMsg)
+            document.getElementById("msg-container").innerHTML += "<br>"
+            document.getElementById("msg-container").scrollTop = document.getElementById("msg-container").scrollHeight
+        // document.getElementById("msg-container").innerText += `You: ${document.getElementById("message").value}`
+    }})
+
+    
+    function sendMessage(target){
+            var args = `{{name}}@$@$${document.getElementById("message").value.replace('@$@$', '')}@$@$${target}`
+            if(document.getElementById("message").value.replace(/\s/g, '').length != 0 && document.getElementById("message").value != ""){
+                var newMsg = document.createElement("h3")
+
+
+                newMsg.innerText = `You: ${document.getElementById("message").value}`
+                newMsg.id = `meMsg`
+                document.getElementById("msg-container").appendChild(newMsg)
+                document.getElementById("msg-container").innerHTML += "<br>"
+                // document.getElementById("msg-container").innerText += `You: ${document.getElementById("message").value}`
+                document.getElementById("msg-container").scrollTop = document.getElementById("msg-container").scrollHeight
+                socketio.emit("sent-message", args)
+                document.getElementById("message").value = ""
+            }
+        }
+
+    function messageInputChecker() {
+        let emoji_keys = [':18', ':joy', ':24', ':admission ticket', ':airplane arrival', ':airplane departure', ':ambulance\t', ':amusementpark', ':asterisk', ':atom', ':baggage claim\t', ':battery', ':bestest', ':bewhiskered', ':biohazard\t', ':blue heart', ':boxing', ':brain', ':broccoli', ':broken', ':canoe\t', ':chains', ':chair\t', ':checkmark1', ':checkmark2', ':choo choo\t', ':cigarette', ':circus', ':closed eyes', ':coaster\t', ':coffin', ':cool button', ':copter', ':copyright', ':cross mark', ':crossing\t', ':cupid\t', ':customs\t', ':disapproval\t', ':distrust', ':drumsticks', ':dumpling', ':explode1', ':explode2', ':face blowing a kiss', ':faith', ':fencer', ':ferry\t', ':fire engine', ':free button', ':fuel pump', ':funeral', ':giggle', ':giraffe', ':goal', ':green heart', ':guitar', ':hashtag', ':heart with arrow', ':heart with ribbon\t', ':heartbeat', ':heartpulse', ':hedgehog', ':highway', ':hugging face', ':id button', ':jet', ':judo', ':knobs\t', ':liberty', ':locomotive', ':love letter', ':lover\t', ':mermaid', ':metro\t', ':microphone', ':middle', ':military', ':millionaire\t', ':minibus', ':mono', ':mother', ':motorboat\t', ':nail', ':new button', ':no smoking', ':oil', ':paintbrush', ':parking', ':passport', ':peaceful', ':penguin', ':piano', ':pissed', ':plug', ':pretzel', ':prophecy', ':radioactive', ':railway track\t', ':recycle', ':red heart', ':registered', ':reminder', ':revolving hearts', ':rose', ':sailboat', ':sauropod', ':sax', ':scooter1', ':scooter2', ':shushing face', ':slider', ':smiling face with heart', ':sock', ':sparkling heart', ':spew', ':spider web', ':streamer', ':suspension', ':t-rex\t', ':tent', ':thinking face', ':thx', ':tichel', ':titanic', ':tokyo', ':tractor', ':triton', ':trumpet', ':two hearts', ':unlock1', ':unlock2', ':versus', ':violin', ':warning', ':waste', ':wheelchair', ':white heart', ':yellow heart', ':zebra']
+        let emoji_values = ['🔞', '😂', '🏪', '🎟', '🛬', '🛫', '🚑', '🎢', '✳', '⚛', '🛄', '🔋', '💜', '🧔🏻', '☣' , '💙', '🥊', '🧠', '🥦', '💔', '🛶', '⛓', '💺', '✔', '✅', '🚆', '🚬', '🎪', '😙', '🎢', '⚰', '🆒', '🚁', '©', '❎', '🚸', '💘', '🛃', '🤨', '🤨', '🥁', '🥟', '🤯', '💥', '😘', '💯', '🤺', '⛴', '🚒', '🆓', '⛽', '⚱', '🤭', '🦒', '🥅', '💚', '🎸', '#⃣', '💘', '💝', '💓', '💗', '🦔', '🛣', '🤗', '🆔', '✈', '🥋', '🎛', '🗽'  , '🚂', '💌', '😘', '🧜\u200d', '🚇', '🎤', '🖕', '🎖', '🚤', '🚐', '🚈', '🤶', '🛥', '💅🏻', '🆕',   '🚭', '🛢', '🖌', '🅿', '🛂', '😇', '🐧'   , '🎹', '🤬', '🔌', '🥨', '🥠', '☢', '🛤', '♻', '❤', '®', '🎗', '💞', '🌹', '⛵', '🦕', '🎷', '🛵', '  🛴', '🤫', '🎚', '😍', '🧦', '💖', '🤮',  '🕸', '🎏', '🚟', '🦖', '🎪', '🤔', '🙏', '🧕', '🚢', '🗼', '🚜', '🧜\u200d', '🎺', '💕', '🔑', '🔓 ', '🆚', '🎻', '⚠', '🗑', '♿', '💟', '💛 ', '🦓']
+        for(var j in emoji_keys){
+            document.getElementById("message").value = document.getElementById("message").value.replace(emoji_keys[j], emoji_values[j])
+        }
+        if(document.getElementById("message").value == "" || document.getElementById("message").value.replace(" ", "") == ""){
+            document.getElementById("messageSender").disabled = true
+        }else{
+            document.getElementById("messageSender").disabled = false
+        }
+    }
+
+
+    //// Keybinds ////
+    document.body.onkeyup = function(e){
+        if(e.code == "Enter" && document.getElementById("message").value != ""){
+            document.getElementById("messageSender").click()
+        }
+    }
+
+
+
+    function searcher(){
+        fetch(`/search$$q=${document.getElementById('search-input').value}$$me={{name}}`, {
+        method: "GET"
+      })
+      .then((response) => {
+        // Check for HTTP success
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}`);
+        }
+        // Read and parse the JSON
+        return response.json()
+      })
+      .then((data) => {
+        console.log(data['main'])
+        document.getElementById("search-res-div").innerHTML =""
+        for(var i in data['main']){
+            // document.getElementById("search-res-div").innerHTML += `<form action="javascript:messageGetter('${data['main'][i]}')">
+            //     <input type="hidden" name="name" value="{{name}}" >
+            //     <input type="hidden" name="pw" value="{{pw}}" >
+            //     <input type="hidden" name="target" value="${data['main'][i]}" >
+            //     <button type="submit">Chat With ${data['main'][i]}</button>
+            //     </form>`
+            // }
+            // console.log(lastMsg)
+            document.getElementById("search-res-div").innerHTML += `
+            <br><div id='user-div' onclick="messageGetter('${data['main'][i]}')">
+                <br><h3 style="font-size: 20px;margin-left: 2%;">${data['main'][i]}</h3><br>
+                <p style="margin-left:5%;" id="${data['main'][i]}"></p><br>
+                </div>
+                `
+                LastMessageGetter(`${data['main'][i]}`)
+                // document.getElementById(data['main'][i]).innerText = lastMsg
+                // <p style="margin-left:5%">${lastMsg}</p><br><br>
+            
+        
+      }})
+      .catch(error => {
+        // ...handle/report error...
+        console.log("ERROR: " + error)
+      });
+    }
+
+    function LastMessageGetter(target){
+        fetch(`/get-last-msg$$target=${target}$$me={{name}}`, {
+        method: "GET"
+      })
+      .then((response) => {
+        // Check for HTTP success
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}`);
+        }
+        // Read and parse the JSON
+        return response.json()
+      })
+      .then(function(data) {
+        if(data['main'].length >= 10){
+            var res = data['main'].substring(0, 9) + "..."
+        }else{
+            var res = data['main']
+        }
+        console.log(res)
+        document.getElementById(target).innerText = res
+
+        return res
+      })
+      .catch(error => {
+        // ...handle/report error...
+        console.log("ERROR: " + error)
+      });
+    }
+
+
+
+    function messageGetter(target){
+        fetch(`/chat$$t=${target}$$me={{name}}`, {
+        method: "GET"
+      })
+      .then((response) => {
+        // Check for HTTP success
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}`);
+        }
+        // Read and parse the JSON
+        return response.json()
+      })
+      .then(function(data) {
+            console.log(data["type"])
+            if(data["type"] == "group"){
+                console.log(getParts(target))
+                document.getElementById("chat-container").innerHTML = `
+                <div id='participants-container'></div><h3 id='target-h3' style="text-align: center;">${target}</h3><a href='/leave$$g=${target}$$me={{name}}$jinjadfdjnsadfkj$$pw={{pw}}' class='btn btn-primary'>Leave</a><input type='text' id='inviteLink' value='${window.location.href}invite$$group=${target}' style='display:none'> <a class='btn btn-primary' onclick='copyInv()' style='text-align:right;'>invite</a><p id='partisipants-p'>Partisipants: </p><br><hr>
+                <div id="msg-container" style="color: white;">
+                </div><br>
+                <div class="msg-box">
+                <p id="istyping"></p><br>
+                <input autocomplete="off" class='mainInput' oninput="messageInputChecker()" type="text" id="message" placeholder="Type a message">
+                <img height='5%' src='/static/images/send.png' id="messageSender" onclick="sendMessage('${target}')">
+                </div>`
+            }else{
+                document.getElementById("chat-container").innerHTML = `
+                <h3 id='target-h3' style="text-align: center;">${target}</h3><br><hr>
+                <div id="msg-container" style="color: white;">
+                </div><br>
+                <div class="msg-box">
+                <p id="istyping"></p><br>
+                <input autocomplete="off" class='mainInput' oninput="messageInputChecker()" type="text" id="message" placeholder="Type a message">
+                <img height='5%' src='/static/images/send.png' id="messageSender" onclick="sendMessage('${target}')">
+                </div>`
+            }
+
+            
+            triggerTyping()
+                // <button class="btn btn-primary" onclick="sendMessage('${target}')" id="messageSender">Send Message</button>
+        
+        
+        for(var i in data['main']){
+            var newMsg = document.createElement("h3")
+            newMsg.innerText = data['main'][i]
+            if(data['main'][i].startsWith("You: ")){
+                newMsg.id = "meMsg"
+            }else{
+                newMsg.id = "userMsg"
+            }
+            document.getElementById("msg-container").appendChild(newMsg)
+            document.getElementById("msg-container").innerHTML += `<br>`
+            document.getElementById("msg-container").scrollTop = document.getElementById("msg-container").scrollHeight
+            }
+        return data['main']
+      })
+      .catch(error => {
+        // ...handle/report error...
+        console.log("ERROR: " + error)
+      });
+    }
+    function copyInv() {
+        var copyText = document.getElementById("inviteLink");
+        copyText.style.display = "block"
+        copyText.select();
+        copyText.setSelectionRange(0, 99999)
+        document.execCommand("copy");
+        copyText.style.display = "none"
+        alertify.success("Copied Invite Link!");
+      }
+    function triggerTyping(){
+    try{
+        var message = document.getElementById('message');
+        var istyping = document.getElementById('istyping')
+        var timeout  = setTimeout(function(){}, 0)
+
+
+        message.addEventListener('keypress', function(){
+            clearTimeout(timeout);
+            socketio.emit("typing", document.getElementById("target-h3").innerText + "@$@$" + "{{name}}")
+            timeout = setTimeout(function() { socketio.emit("stop-typing", document.getElementById("target-h3").innerText + "@$@$" + "{{name}}") }, 1000)
+        })
+    }
+    catch{
+        console.log("fdasdfasfd!")
+    }
+    }
+    socketio.on(`{{name}}-typing`, (data) => {
+    try{
+
+        if(data == document.getElementById('target-h3').innerText){
+            console.log('start')
+            document.getElementById('istyping').innerText = document.getElementById("target-h3").innerText + " typing..."
+        }
+    }
+    catch{}
+    })
+    socketio.on(`{{name}}-stop-typing`, (data) => {
+    try{
+
+        if(data == document.getElementById('target-h3').innerText){
+            console.log('stop')
+            document.getElementById('istyping').innerText = ""
+    }}
+    catch{}
+    })
+
+    function getParts(group){
+        fetch(`/get-parts$$group=${group}`, {
+        method: "GET"
+      })
+      .then((response) => {
+        // Check for HTTP success
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}`);
+        }
+        // Read and parse the JSON
+        return response.json()
+      })
+      .then((data) => {
+        console.log(data['main'])
+        var r = ""
+        for(var i in data['main']){
+            if((i+1).replace("0", "").length == data['main'].length){
+                r += data['main'][i]
+            }else{
+                r += data['main'][i] + ", "
+            }
+        }
+        document.getElementById("partisipants-p").innerText += " " + r
+        return r
+    })
+      .catch(error => {
+        // ...handle/report error...
+        console.log("ERROR: " + error)
+      });
+    }
+
+
+</script>
+{%for j in all_groups%}
+<script>
+    var socketio = io()
+    socketio.on("{{j}}-new-message", (data) => { // name is ME
+        
+        if(data[0] == document.getElementById('target-h3').innerText){
+            var newMsg = document.createElement("h3")
+            console.log(data[1])
+            newMsg.innerText = data[1]
+            if(data[1].startsWith("{{name}}")){
+
+            }else{
+                console.log(data[1])
+                notifier(data[1])
+                newMsg.id = `userMsg`
+                document.getElementById("msg-container").appendChild(newMsg)
+                document.getElementById("msg-container").innerHTML += "<br>"
+                document.getElementById("msg-container").scrollTop = document.getElementById("msg-container").scrollHeight
+            }
+}})</script>
+{%endfor%}
